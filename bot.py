@@ -107,4 +107,24 @@ async def on_message(message):
             await message.channel.send(f"⚠️ Error: {e}")
 
             
+import threading
+from http.server import HTTPServer, BaseHTTPRequestHandler
+
+PORT = 8000  # or get from environment
+
+class SimpleHandler(BaseHTTPRequestHandler):
+    def do_GET(self):
+        self.send_response(200)
+        self.end_headers()
+        self.wfile.write(b"Bot is running")
+
+def run_server():
+    server = HTTPServer(('', PORT), SimpleHandler)
+    print(f"HTTP server running on port {PORT}")
+    server.serve_forever()
+
+# Run HTTP server in a separate thread so it doesn't block the bot
+threading.Thread(target=run_server, daemon=True).start()
+
+# Then run your bot normally
 client.run(DISCORD_TOKEN)
