@@ -7,7 +7,7 @@ import re
 
 # Load tokens from environment variables
 DISCORD_TOKEN = os.getenv("DISCORD_TOKEN")
-OPENROUTER_API_KEY = os.getenv("OPENROUTER_API_KEY")
+DEEPSEEK_API_KEY = os.getenv("DEEPSEEK_API_KEY")  # Use DeepSeek key
 
 # Discord setup with intents
 intents = discord.Intents.default()
@@ -15,7 +15,7 @@ intents.messages = True
 intents.message_content = True
 client = discord.Client(intents=intents)
 
-# Model to use from OpenRouter
+# Model to use from DeepSeek
 MODEL = "deepseek/r1"
 
 # Conversation memory per channel
@@ -45,7 +45,6 @@ async def on_message(message):
         # Detect URLs in the prompt
         urls = URL_REGEX.findall(prompt)
         if urls:
-            # If a URL is found, prepend instruction to summarize
             prompt = f"Summarize this page: {urls[0]}"
 
         # Initialize history for this channel if it doesn't exist
@@ -57,26 +56,27 @@ async def on_message(message):
 
         try:
             response = requests.post(
-                "https://openrouter.ai/api/v1/chat/completions",
+                "https://api.deepseek.com/v1/chat/completions",
                 headers={
-                    "Authorization": f"Bearer {OPENROUTER_API_KEY}",
+                    "Authorization": f"Bearer {DEEPSEEK_API_KEY}",
                     "Content-Type": "application/json"
                 },
                 json={
                     "model": MODEL,
                     "messages": conversation_history[channel_id]
-                }
+                },
+                timeout=30
             )
 
             data = response.json()
+            print(data)  # Debug: see full response from DeepSeek
 
             if "choices" in data and len(data["choices"]) > 0:
                 answer = data["choices"][0]["message"]["content"]
-                # Add assistant response to history
                 conversation_history[channel_id].append({"role": "assistant", "content": answer})
-                await message.channel.send(answer[:2000])  # Discord message limit
+                await message.channel.send(answer[:2000])
             else:
-                await message.channel.send("❌ No response from AI.")
+                await message.channel.send("❌ No response from AI. Check API key or model name.")
 
         except Exception as e:
             await message.channel.send(f"⚠️ Error: {e}")
