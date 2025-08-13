@@ -6,7 +6,7 @@ from http.server import HTTPServer, BaseHTTPRequestHandler
 
 # Load tokens from environment variables
 DISCORD_TOKEN = os.getenv("DISCORD_TOKEN")
-OPENROUTER_API_KEY = os.getenv("OPENROUTER_API_KEY")
+DEEPSEEK_API_KEY = os.getenv("DEEPSEEK_API_KEY")
 
 # Discord setup with intents
 intents = discord.Intents.default()
@@ -14,8 +14,8 @@ intents.messages = True
 intents.message_content = True
 client = discord.Client(intents=intents)
 
-# Model to use from OpenRouter
-MODEL = "openai/gpt-3.5-turbo"
+# Model to use from DeepSeek
+MODEL = "deepseek-chat"
 
 # Conversation memory per channel
 conversation_history = {}
@@ -47,9 +47,9 @@ async def on_message(message):
 
         try:
             response = requests.post(
-                "https://openrouter.ai/api/v1/chat/completions",
+                "https://api.deepseek.com/v1/chat/completions",
                 headers={
-                    "Authorization": f"Bearer {OPENROUTER_API_KEY}",
+                    "Authorization": f"Bearer {DEEPSEEK_API_KEY}",
                     "Content-Type": "application/json"
                 },
                 json={
