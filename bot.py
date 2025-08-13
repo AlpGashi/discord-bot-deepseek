@@ -3,6 +3,7 @@ import discord
 import requests
 import threading
 from http.server import HTTPServer, BaseHTTPRequestHandler
+from bs4 import BeautifulSoup
 
 # Load tokens from environment variables
 DISCORD_TOKEN = os.getenv("DISCORD_TOKEN")
@@ -29,6 +30,7 @@ async def on_message(message):
     if message.author == client.user:
         return
 
+    # ----- /ask command -----
     if message.content.startswith("/ask"):
         channel_id = message.channel.id
         prompt = message.content[len("/ask "):].strip()
@@ -59,7 +61,6 @@ async def on_message(message):
             )
 
             data = response.json()
-
             if "choices" in data and len(data["choices"]) > 0:
                 answer = data["choices"][0]["message"]["content"]
                 # Add assistant response to history
@@ -71,7 +72,46 @@ async def on_message(message):
         except Exception as e:
             await message.channel.send(f"⚠️ Error: {e}")
 
-# Minimal HTTP server to keep Render happy
+    # ----- /summarize command -----
+    elif message.content.startswith("/summarize"):
+        url = message.content[len("/summarize "):].strip()
+        if not url:
+            await message.channel.send("Please provide a URL. Example: `/summarize https://example.com`")
+            return
+
+        await message.channel.send("Fetching and summarizing... 🤖")
+
+        try:
+            # Fetch page and extract text
+            response = requests.get(url)
+            soup = BeautifulSoup(response.text, "html.parser")
+            text = soup.get_text(separator="\n")
+            text = text[:3000]  # limit to avoid huge API requests
+
+            # Send to DeepSeek for summary
+            ds_response = requests.post(
+                "https://api.deepseek.com/v1/chat/completions",
+                headers={
+                    "Authorization": f"Bearer {DEEPSEEK_API_KEY}",
+                    "Content-Type": "application/json"
+                },
+                json={
+                    "model": MODEL,
+                    "messages": [{"role": "user", "content": f"Summarize this page:\n{text}"}]
+                }
+            )
+
+            data = ds_response.json()
+            if "choices" in data and len(data["choices"]) > 0:
+                summary = data["choices"][0]["message"]["content"]
+                await message.channel.send(summary[:2000])
+            else:
+                await message.channel.send("❌ Could not get summary.")
+
+        except Exception as e:
+            await message.channel.send(f"⚠️ Error: {e}")
+
+# ----- Minimal HTTP server to keep Render happy -----
 PORT = int(os.getenv("PORT", 8000))
 
 class SimpleHandler(BaseHTTPRequestHandler):
