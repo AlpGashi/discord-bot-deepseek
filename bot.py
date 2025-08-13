@@ -29,11 +29,11 @@ async def on_message(message):
     if message.author == client.user:
         return
 
-    if message.content.startswith("!ask"):
+    if message.content.startswith("/ask"):
         channel_id = message.channel.id
-        prompt = message.content[len("!ask "):].strip()
+        prompt = message.content[len("/ask "):].strip()
         if not prompt:
-            await message.channel.send("Please provide a question. Example: `!ask What is AI?`")
+            await message.channel.send("Please provide a question. Example: `/ask What is AI?`")
             return
 
         await message.channel.send("Thinking... 🤖")
