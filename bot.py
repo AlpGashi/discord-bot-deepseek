@@ -3,6 +3,7 @@ import discord
 import requests
 import threading
 from http.server import HTTPServer, BaseHTTPRequestHandler
+import re
 
 # Load tokens from environment variables
 DISCORD_TOKEN = os.getenv("DISCORD_TOKEN")
@@ -14,11 +15,14 @@ intents.messages = True
 intents.message_content = True
 client = discord.Client(intents=intents)
 
-# Model to use from OpenRouter (DeepSeek)
-MODEL = "deepseek/r1"  # or another DeepSeek model
+# Model to use from OpenRouter
+MODEL = "deepseek/r1"
 
 # Conversation memory per channel
 conversation_history = {}
+
+# URL detection regex
+URL_REGEX = re.compile(r'https?://\S+')
 
 @client.event
 async def on_ready():
@@ -33,10 +37,16 @@ async def on_message(message):
         channel_id = message.channel.id
         prompt = message.content[len("/ask "):].strip()
         if not prompt:
-            await message.channel.send("Please provide a question. Example: `/ask What is AI?`")
+            await message.channel.send("Please provide a question or URL. Example: `/ask What is AI?`")
             return
 
         await message.channel.send("Thinking... 🤖")
+
+        # Detect URLs in the prompt
+        urls = URL_REGEX.findall(prompt)
+        if urls:
+            # If a URL is found, prepend instruction to summarize
+            prompt = f"Summarize this page: {urls[0]}"
 
         # Initialize history for this channel if it doesn't exist
         if channel_id not in conversation_history:
